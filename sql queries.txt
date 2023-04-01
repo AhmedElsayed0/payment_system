@@ -1,0 +1,69 @@
+-----Data model SQl queries -----------------
+
+CREATE TABLE `customer` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `date_of_registration` date DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE `merchant` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `is_active` bit(1) NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+
+CREATE TABLE `payment_transaction` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `gross_amount` double NOT NULL,
+  `receipt_id` bigint NOT NULL,
+  `transaction_date` date DEFAULT NULL,
+  `vat_rate` double NOT NULL,
+  `customer_id` bigint DEFAULT NULL,
+  `merchant_id` bigint DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `FKiw1ungnd9feskyaid8s56egj0` (`customer_id`),
+  KEY `FKsv2br8li6obm42hlsbq2wsqpp` (`merchant_id`),
+  CONSTRAINT `FKiw1ungnd9feskyaid8s56egj0` FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`),
+  CONSTRAINT `FKsv2br8li6obm42hlsbq2wsqpp` FOREIGN KEY (`merchant_id`) REFERENCES `merchant` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+1. select the merchant with the highest turnover in 2022
+
+SELECT merchant_id, SUM(gross_amount) AS total_turnover
+FROM payment_transaction
+WHERE YEAR(transaction_date) = 2023
+GROUP BY id
+ORDER BY total_turnover DESC
+LIMIT 1;
+
+2.  merchant with the highest turnover is still active?
+
+SELECT t.merchant_id, m.name, SUM(t.gross_amount) AS total_turnover
+FROM payment_transaction t
+JOIN merchant m ON t.merchant_id = m.id
+WHERE m.is_active = true
+AND YEAR(t.transaction_date) = YEAR(CURRENT_DATE)
+GROUP BY t.merchant_id, m.name
+ORDER BY total_turnover DESC
+LIMIT 1;
+
+3. 5 top customers that have been active in 2022 but ceased doing transactions in 2023
+
+SELECT customer_id
+FROM payment_transaction
+WHERE YEAR(transaction_date) = 2022 -- transactions in 2022
+AND customer_id NOT IN ( -- exclude customers who made transactions in 2023
+  SELECT customer_id
+  FROM payment_transaction
+  WHERE YEAR(transaction_date) = 2023
+)
+GROUP BY customer_id
+ORDER BY COUNT(*) DESC
+limit 5;
